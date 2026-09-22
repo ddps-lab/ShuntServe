@@ -62,17 +62,18 @@ ShuntServe/
 │   │   └── vllm/                        # vLLM reference benchmarks
 │   ├── SpotTolerance/                   # Spot interruption simulation
 │   │   ├── generate_pipelines.py        # Builds pipeline configs from optimizer results
-│   │   ├── nodes_scenario_A.json        # Node name -> IP mapping
-│   │   ├── spot_trace_events_scenario_A.json      # Interruption/restore event timeline
-│   │   ├── llama3-70b/{offline,online}/scenario_A/
-│   │   ├── qwen3-32b/{offline,online}/scenario_A/
-│   │   └── UnitTest8B/                  # Minimum functional test (3× single-GPU nodes)
+│   │   ├── AzureConversation/
+│   │   │   ├── nodes_scenario_A.json    # Node name -> IP mapping
+│   │   │   ├── spot_trace_events_scenario_A.json  # Interruption/restore event timeline
+│   │   │   ├── llama3-70b/{offline,online}/scenario_A/
+│   │   │   ├── qwen3-32b/{offline,online}/scenario_A/
+│   │   │   └── UnitTest8B/              # Minimum functional test (3× single-GPU nodes)
+│   │   └── MooncakeAgentTool/
 │   └── ReferenceData/                   # Reference results + figure-generating notebooks
 ├── IaC/                                 # Infrastructure as Code (Terraform)
 │   ├── README.md
 │   ├── main.tf
 │   └── ec2-cluster-module/
-├── profiling/                           # GPU profiling utilities
 ├── install.sh                           # Inference engine installer
 ├── protocols.py                         # Inter-component communication protocols
 └── utils.py                             # SSH and Ray placement group utilities
@@ -195,4 +196,19 @@ Once the cluster is ready, follow the [experiment guide](ArtifactEvaluation/READ
 3. **Provision the cluster** — Use the [IaC module](IaC/README.md) or set up GPU instances manually based on the placement result.
 4. **Run experiments** — Follow the [experiment guide](ArtifactEvaluation/README.md).
 
-> **Tip:** [`ArtifactEvaluation/SpotTolerance/UnitTest8B`](ArtifactEvaluation/SpotTolerance/UnitTest8B) provides a minimum functional test on 3× g6.xlarge (single L4 GPU each) using Llama-3.1-8B — useful to verify interruption handling mechanics without provisioning the full 70B cluster.
+> **Tip:** [`ArtifactEvaluation/SpotTolerance/AzureConversation/UnitTest8B`](ArtifactEvaluation/SpotTolerance/AzureConversation/UnitTest8B) provides a minimum functional test on 3× g6.xlarge (single L4 GPU each) using Llama-3.1-8B — useful to verify interruption handling mechanics without provisioning the full 70B cluster.
+
+## Citation
+
+```bibtex
+@article{jeong2027shuntserve,
+  title   = {{ShuntServe}: Cost-efficient {LLM} serving on heterogeneous spot {GPU} clusters},
+  author  = {Seungwoo Jeong and Moohyun Song and Juhyun Park and Kyungyong Lee},
+  journal = {Future Generation Computer Systems},
+  volume  = {186},
+  pages   = {108760},
+  year    = {2027},
+  doi     = {10.1016/j.future.2026.108760},
+  url     = {https://doi.org/10.1016/j.future.2026.108760}
+}
+```

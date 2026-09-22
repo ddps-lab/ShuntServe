@@ -32,19 +32,20 @@ Or run steps 1+2 together:
 | `estimate.py` | Analytical estimator (batch sweep, pipeline bubble correction) |
 | `generate_p_files.py` | Generates benchmark Python scripts from estimation JSONs |
 | `nodes.py` | Worker IP addresses (edit before benchmarking) |
-| `{model}/results_viewer.ipynb` | Jupyter notebook to view estimation results |
+| `vllm/{model}/results_viewer.ipynb` | Jupyter notebook to view estimation results |
 
 ## Directory Structure
 
 ```
 {model}/
-├── results_viewer.ipynb            # Set WORKLOAD variable to select
 └── in{input}-out{output}/          # Workload configuration (gitignored)
     ├── {instance_dir}/
     │   └── {strategy}.py           # Benchmark script
     └── results/data/
         ├── estimated/est_*.json    # Estimation results (cached)
         └── measured/bench_*.json   # Benchmark results
+vllm/{model}/
+└── results_viewer.ipynb            # Set WORKLOAD variable to select
 ```
 
 ## Models

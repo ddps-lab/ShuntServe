@@ -8,6 +8,7 @@ Each (baseline × model) combination has its own entry point under
 [`ArtifactEvaluation/ModelPlacement/optimizer/`](../ArtifactEvaluation/ModelPlacement/optimizer/):
 
 ```bash
+# From the project root
 cd ArtifactEvaluation/ModelPlacement/optimizer/llama3-70b
 python shuntserve.py        # ShuntServe beam-search DP
 python hexgen.py            # HEXGEN genetic algorithm
@@ -16,12 +17,13 @@ python vllm.py              # Single-pipeline vLLM baseline
 ```
 
 Substitute `qwen3-32b` for the Qwen model. Results are written to
-`optimizer/results/<model>/{estimated,measured}/predicted_<baseline>_<ModelName>.json`.
+`ArtifactEvaluation/ModelPlacement/optimizer/results/<model>/estimated/predicted_<baseline>_<ModelName>.json` (from the project root).
 
 ### Requirements
 
 ```bash
-pip install -r requirements-for-baselines.txt
+# From the project root
+pip install -r ModelPlacement/requirements-for-baselines.txt
 ```
 
 ## Baselines

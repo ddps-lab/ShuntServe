@@ -12,9 +12,9 @@ End-to-end benchmark scripts for ShuntServe. Each script configures a `GlobalSer
 | Per-Pipeline Ranking | `ModelPlacement/per_pipeline/` | ✓ | ✓ |
 | Module Initialization Timing | `ModelPlacement/check_module_time/` | ✓ | — |
 | Beam-Search Top-k | `ModelPlacement/top_k_beam/` | ✓ | ✓ |
-| Spot Interruption — Offline | `SpotTolerance/{model}/offline/scenario_A/` | ✓ | ✓ |
-| Spot Interruption — Online | `SpotTolerance/{model}/online/scenario_A/` | ✓ | ✓ |
-| Minimum Functional Test | `SpotTolerance/UnitTest8B/` | Llama-3.1-8B |  — |
+| Spot Interruption — Offline | `SpotTolerance/AzureConversation/{model}/offline/scenario_A/` | ✓ | ✓ |
+| Spot Interruption — Online | `SpotTolerance/AzureConversation/{model}/online/scenario_A/` | ✓ | ✓ |
+| Minimum Functional Test | `SpotTolerance/AzureConversation/UnitTest8B/` | Llama-3.1-8B |  — |
 | Performance Estimation | `PerformanceEstimation/` | ✓ | ✓ |
 
 ## Step 0: Environment Setup
@@ -33,7 +33,7 @@ Example cluster used in our development setup:
 
 Total: 9 instances, 24 GPUs, 672 GB GPU memory.
 
-`SpotTolerance` experiments additionally need replacement instances (simulating on-demand fallback when spot is interrupted); counts are listed in [`nodes_scenario_A.json`](SpotTolerance/nodes_scenario_A.json).
+`SpotTolerance` experiments additionally need replacement instances (simulating on-demand fallback when spot is interrupted); counts are listed in [`nodes_scenario_A.json`](SpotTolerance/AzureConversation/nodes_scenario_A.json).
 
 The supported GPU/instance types are enumerated in [`ModelPlacement/hardware_specs.py`](../ModelPlacement/hardware_specs.py). To target a different cluster, edit that file and re-run the optimizer (Step 4).
 
@@ -48,6 +48,7 @@ Model weights are served from S3 via the [TensorStore](../TensorStore/README.md)
 
 2. Create an S3 bucket and upload the weights using `TensorStore/upload_model.sh`. This does not require a GPU:
    ```bash
+   # From the project root
    cd TensorStore
    # Edit upload_model.sh:
    #   BUCKET_NAME="s3://<YOUR_S3_BUCKET>"
@@ -67,6 +68,7 @@ A preprocessed [Azure LLM Inference Conversation Dataset (2023)](https://github.
 The optimizer determines how to partition transformer layers across a heterogeneous cluster. Run it once per (baseline × model):
 
 ```bash
+# From the project root
 cd ArtifactEvaluation/ModelPlacement/optimizer/llama3-70b
 python shuntserve.py            # ShuntServe beam-search DP
 python hexgen.py                # HEXGEN genetic algorithm
@@ -74,7 +76,7 @@ python alpaserve.py             # AlpaServe homogeneous DP
 python vllm.py                  # Single-pipeline vLLM baseline
 ```
 
-Replace `llama3-70b` with `qwen3-32b` for Qwen3. Results are written to `optimizer/results/<model>/{estimated,measured}/predicted_<baseline>_<ModelName>.json`, containing per-pipeline `pp_layer_partition`, `parallel_strategy`, `num_gpu_blocks`, `max_batch_size`, and estimated throughput.
+Replace `llama3-70b` with `qwen3-32b` for Qwen3. Results are written to `ModelPlacement/optimizer/results/<model>/estimated/predicted_<baseline>_<ModelName>.json` (relative to `ArtifactEvaluation/`), containing per-pipeline `pp_layer_partition`, `parallel_strategy`, `num_gpu_blocks`, `max_batch_size`, and estimated throughput.
 
 See [`ModelPlacement/README.md`](../ModelPlacement/README.md) for algorithm details.
 
@@ -82,7 +84,7 @@ See [`ModelPlacement/README.md`](../ModelPlacement/README.md) for algorithm deta
 
 ### ModelPlacement experiments
 
-`ModelPlacement/nodes.py` is shared across all `offline/`, `online/`, `per_pipeline/`, and `check_module_time/` scripts. Fill in the private IPs of your EC2 instances:
+`ModelPlacement/nodes.py` is shared across the `offline/`, `online/`, and `per_pipeline/` scripts. The module initialization timing scripts use `ModelPlacement/check_module_time/nodes.py`. Fill in the private IPs of your EC2 instances:
 
 ```python
 g6_12xlarge_node_ip_1 = ""   # 4× L4
@@ -98,20 +100,21 @@ g6e_xlarge_node_ip_4  = ""
 
 ### SpotTolerance experiments
 
-Edit [`SpotTolerance/nodes_scenario_A.json`](SpotTolerance/nodes_scenario_A.json) with the initial (spot-simulated) and replacement (on-demand) instance IPs. `spot_*` and `on_demand_*` prefixes distinguish the two roles.
+Edit [`SpotTolerance/AzureConversation/nodes_scenario_A.json`](SpotTolerance/AzureConversation/nodes_scenario_A.json) with the initial (spot-simulated) and replacement (on-demand) instance IPs. `spot_*` and `on_demand_*` prefixes distinguish the two roles.
 
 Then generate pipeline configs from the optimizer results (Step 4):
 
 ```bash
-cd SpotTolerance
+# From the project root
+cd ArtifactEvaluation/SpotTolerance
 python generate_pipelines.py --model all
 ```
 
-This writes `pipelines_{model}_scenario_A.json` files used by the offline/online scripts.
+This writes `pipelines_llama3_70b.json`, `pipelines_qwen3_32b.json`, and matching `nodes_*.json` files in `SpotTolerance/`. The offline/online scripts load the scenario-specific files at `SpotTolerance/AzureConversation/llama3-70b/pipelines_llama3_70b_scenario_A.json` and `SpotTolerance/AzureConversation/qwen3-32b/pipelines_qwen3_32b_scenario_A.json`; apply the generated configuration to those files when updating a scenario.
 
 ### UnitTest8B
 
-[`SpotTolerance/UnitTest8B/nodes.json`](SpotTolerance/UnitTest8B/nodes.json) holds the 3 initial + 2 replacement `g6.xlarge` IPs.
+[`SpotTolerance/AzureConversation/UnitTest8B/nodes.json`](SpotTolerance/AzureConversation/UnitTest8B/nodes.json) holds the 3 initial + 2 replacement `g6.xlarge` IPs.
 
 ## Step 6: Run Experiments
 
@@ -150,7 +153,8 @@ Trace replay with `time_scale=5.0` (inter-arrival times stretched 5×). Each bas
 Evaluates the ranking accuracy of ShuntServe's profiling-free estimator. Each pipeline is benchmarked independently using synthetic fixed-length requests (input=763, output=232 tokens). Each baseline subdirectory holds one script per pipeline: `p1.py`, `p2.py`, …
 
 ```bash
-cd ModelPlacement/per_pipeline/llama3-70b/shuntserve
+# From the project root
+cd ArtifactEvaluation/ModelPlacement/per_pipeline/llama3-70b/shuntserve
 python p1.py
 python p2.py
 ```
@@ -159,9 +163,9 @@ python p2.py
 
 ### 6.4 Spot Interruption — Offline
 
-**Paths:** `SpotTolerance/{llama3-70b,qwen3-32b}/offline/scenario_A/`
+**Paths:** `SpotTolerance/AzureConversation/{llama3-70b,qwen3-32b}/offline/scenario_A/`
 
-The interruption/restore timeline is declared in [`SpotTolerance/spot_trace_events_scenario_A.json`](SpotTolerance/spot_trace_events_scenario_A.json). Use `show_events.py` in each scenario directory to print a human-readable summary. All trace requests are submitted at once (`time_scale=0`).
+The interruption/restore timeline is declared in [`SpotTolerance/AzureConversation/spot_trace_events_scenario_A.json`](SpotTolerance/AzureConversation/spot_trace_events_scenario_A.json). Use `show_events.py` in each scenario directory to print a human-readable summary. All trace requests are submitted at once (`time_scale=0`).
 
 | Strategy | Script | `request_handler_mode` | Interruption Handling |
 |---|---|---|---|
@@ -174,13 +178,13 @@ The interruption/restore timeline is declared in [`SpotTolerance/spot_trace_even
 
 ### 6.5 Spot Interruption — Online
 
-**Paths:** `SpotTolerance/{llama3-70b,qwen3-32b}/online/scenario_A/`
+**Paths:** `SpotTolerance/AzureConversation/{llama3-70b,qwen3-32b}/online/scenario_A/`
 
 Same strategies as 6.4, but the trace is replayed with `time_scale=3.0` (inter-arrival times stretched 3×). The event timeline is shared with the offline variant.
 
 ### 6.6 UnitTest8B — Minimum Functional Test
 
-**Path:** `SpotTolerance/UnitTest8B/`
+**Path:** `SpotTolerance/AzureConversation/UnitTest8B/`
 
 A small-scale sanity test on 3× `g6.xlarge` (single L4 each) using Llama-3.1-8B-Instruct. Intended to verify that interruption handling mechanisms (stop-and-start, concurrent initialization, request migration) are operational without provisioning the full 70B cluster.
 
@@ -205,10 +209,12 @@ Unlike the 70B scripts (which use `switch_nodes()` for in-place migration), the 
 
 ### Trace CSV
 
-Each run saves a per-request trace CSV:
+Each run saves a per-request trace CSV named `{trace_output_prefix}_{YYYYMMDD_HHMM}.csv` in the following directories (relative to `ArtifactEvaluation/`):
 
 ```
-ArtifactEvaluation/Trace/{trace_output_prefix}_{YYYYMMDD_HHMM}.csv
+Trace/                                                                 # ModelPlacement
+SpotTolerance/{AzureConversation,MooncakeAgentTool}/results/<model>/<mode>/scenario_<scenario>/Trace/
+SpotTolerance/{AzureConversation,MooncakeAgentTool}/results/UnitTest8B/Trace/
 ```
 
 Columns: RequestID, ArrivalTime, CompletionTime, InputTokens, OutputTokens, Latency, TTFT, TPOT, Success.
@@ -256,7 +262,7 @@ Each `figures/` directory ships a short README describing its notebooks and outp
    - `"migration"` — active request migration during node switch (continues in-flight requests on new nodes)
    - `"re-routing"` — re-routes failed requests to surviving pipelines (restarts from scratch)
    - default — standard round-robin with no interruption handling.
-3. **Trace output location**: All trace CSVs go to `ArtifactEvaluation/Trace/` (created automatically).
+3. **Trace output location**: See [Trace CSV](#trace-csv) for the output directory of each experiment. These directories are created automatically.
 
 ## Appendix A: Pipeline Configuration Reference
 

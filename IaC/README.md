@@ -76,7 +76,7 @@ instance_type_count = {
 }
 ```
 
-For the UnitTest8B minimum functional test (see [`ArtifactEvaluation/SpotTolerance/UnitTest8B`](../ArtifactEvaluation/SpotTolerance/UnitTest8B)):
+For the UnitTest8B minimum functional test (see [`ArtifactEvaluation/SpotTolerance/AzureConversation/UnitTest8B`](../ArtifactEvaluation/SpotTolerance/AzureConversation/UnitTest8B)):
 
 ```hcl
 instance_type_count = {
