@@ -1,0 +1,23 @@
+{
+  "model_name": "meta-llama/Llama-3.1-70B-Instruct",
+  "s3_bucket": "",
+
+  "nodes": {
+    "g6.12xlarge": ["", ""],
+    "g5.12xlarge": ["", ""],
+    "g6e.xlarge": ["", "", "", ""]
+  },
+
+  "workload": {
+    "dataset": "Certification/dataset/azure_conv_2023_input2048_first180s.csv",
+    "window_s": 180,
+    "expected_input_len": 763,
+    "expected_output_len": 232
+  },
+
+  "warmup": {
+    "end_time_s": 30
+  },
+
+  "target_improvement_pct": 50
+}
